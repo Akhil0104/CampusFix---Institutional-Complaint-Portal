@@ -48,25 +48,39 @@ login_manager.login_message = 'Please login to access this page.'
 login_manager.login_message_category = 'info'
 
 # ------------------- MongoDB Connection -------------------
-mongo_uri = os.getenv('MONGO_URI')
+mongo_uri = os.getenv('MONGO_URI') or Config.MONGO_URI
 
 try:
-    if mongo_uri:
+    if mongo_uri and 'localhost' not in mongo_uri:
+        print(f"🌐 Connecting to MongoDB Atlas: {mongo_uri}")
         client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-        print("🌐 Connecting to MongoDB Atlas...")
     else:
+        print("🏠 Connecting to local MongoDB (fallback)")
         client = MongoClient('localhost', 27017, serverSelectionTimeoutMS=5000)
-        print("🏠 Connecting to local MongoDB...")
 
-    client.admin.command('ping')  # Test connection
+    client.admin.command('ping')
     db = client['campusfix']
     print("✅ MongoDB connected successfully!")
 
 except Exception as e:
     print(f"❌ MongoDB connection error: {e}")
     if mongo_uri:
-        print("🚨 Deployment failed: Check your Atlas Network Access (0.0.0.0/0)")
+        print("🚨 Deployment failed: Check your Atlas Network Access, credentials, and MONGO_URI")
     db = None
+
+
+def get_db():
+    global db
+    if db is None:
+        raise RuntimeError('Database connection not available. Check MONGO_URI and Atlas network access.')
+    return db
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    print(f"🔥 Internal server error: {e}")
+    import traceback
+    traceback.print_exc()
+    return "Internal server error. Check server logs.", 500
 
 # ------------------- Email Function -------------------
 def send_verification_email(user_email):
@@ -153,6 +167,11 @@ def utility_processor():
         'statuses': Config.COMPLAINT_STATUSES,
         'now': datetime.utcnow()
     }
+
+@app.before_request
+def check_db_connection():
+    if db is None:
+        return "MongoDB connection is not available. Please configure MONGO_URI and retry.", 500
 
 @app.route('/')
 def index():
