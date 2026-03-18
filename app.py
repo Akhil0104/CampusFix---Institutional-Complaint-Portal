@@ -173,6 +173,14 @@ def check_db_connection():
     if db is None:
         return "MongoDB connection is not available. Please configure MONGO_URI and retry.", 500
 
+@app.route('/debug/health')
+def debug_health():
+    return jsonify({
+        'status': 'ok',
+        'mongo_uri': os.getenv('MONGO_URI', 'not-set'),
+        'db_connected': db is not None
+    })
+
 @app.route('/')
 def index():
     if db is None:
