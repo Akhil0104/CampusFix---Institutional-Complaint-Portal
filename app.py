@@ -282,8 +282,8 @@ def register():
                 'created_at': datetime.utcnow()
             }
             
-            result = db.users.insert_one(user_data)
             send_verification_email(email)
+            result = db.users.insert_one(user_data)
             
             if result.inserted_id:
                 flash('Registration successful! Please verify your email.', 'success')
