@@ -3,6 +3,7 @@ Flask-PyMongo
 Flask-Login
 Flask-Bcrypt
 Flask-WTF
+Flask-Mail
 python-dotenv
 Pillow
 WTForms
@@ -13,6 +14,3 @@ itsdangerous
 jinja2
 MarkupSafe
 gunicorn
-pymongo
-python-dotenv
-flask-mail
