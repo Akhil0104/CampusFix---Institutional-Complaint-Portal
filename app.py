@@ -19,8 +19,9 @@ load_dotenv()
 app = Flask(__name__)
 
 # ------------------- Flask Configs -------------------
+app.config.from_object(Config)
+
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "default_secret_key")
-serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 # Email Configs
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -28,6 +29,8 @@ app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+
+serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 mail = Mail(app)
 
 # Upload folder
