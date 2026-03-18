@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from bson import ObjectId
 from datetime import datetime
 import os
+import sys
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
@@ -60,6 +61,8 @@ try:
 
 except Exception as e:
     print(f"❌ MongoDB connection error: {e}")
+    if mongo_uri:
+        print("🚨 Deployment failed: Check your Atlas Network Access (0.0.0.0/0)")
     db = None
 
 # ------------------- Email Function -------------------
@@ -96,26 +99,6 @@ login_manager.login_message_category = 'info'
 
 # Load .env variables
 load_dotenv()
-
-# Get MongoDB URI from environment
-mongo_uri = os.getenv('MONGO_URI')
-
-try:
-    if mongo_uri:
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-        print("🌐 Connecting to MongoDB Atlas...")
-    else:
-        client = MongoClient('localhost', 27017, serverSelectionTimeoutMS=5000)
-        print("🏠 Connecting to local MongoDB...")
-
-    # Test connection
-    client.admin.command('ping')
-    db = client['campusfix']
-    print("✅ MongoDB connected successfully!")
-
-except Exception as e:
-    print(f"❌ MongoDB connection error: {e}")
-    db = None
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
