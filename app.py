@@ -1021,4 +1021,6 @@ def verify_email(token):
     return "<h1 style='color:black; font-size:24px; text-align:center;'>Email verified successfully! You can now login.</h1>"
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, port=port)
