@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}View Complaint{% endblock %}
+
+{% block content %}
+<div class="container py-4 fade-in">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        {% if current_user.role == 'student' %}
+                            <a href="{{ url_for('student_dashboard') }}">Dashboard</a>
+                        {% elif current_user.role == 'staff' %}
+                            <a href="{{ url_for('staff_dashboard') }}">Dashboard</a>
+                        {% elif current_user.role == 'admin' %}
+                            <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                        {% endif %}
+                    </li>
+                    <li class="breadcrumb-item active">Complaint Details</li>
+                </ol>
+            </nav>
+            
+            <div class="card shadow-lg border-0">
+                <!-- Card Header -->
+                <div class="card-header bg-transparent border-white-10 d-flex justify-content-between align-items-center p-4">
+                    <h4 class="mb-0 fw-bold text-light d-flex align-items-center gap-2">
+                        <i class="bi bi-ticket-detailed text-primary"></i> 
+                        Complaint #{{ complaint._id|string|truncate(8, True, '') }}
+                    </h4>
+                    <span class="badge bg-{{ 'success' if complaint.status == 'resolved' 
+                                           else 'warning' if complaint.status == 'work_in_progress'
+                                           else 'info' if complaint.status == 'under_review'
+                                           else 'primary' }} px-3 py-2 text-uppercase font-weight-bold">
+                        {{ complaint.status.replace('_', ' ').title() }}
+                    </span>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Complaint Details Row -->
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <h4 class="fw-bold text-light mb-2">{{ complaint.title }}</h4>
+                            <p class="text-muted small d-flex flex-wrap gap-3 mb-4">
+                                <span><i class="bi bi-tag text-primary me-1"></i> {{ complaint.category }}</span>
+                                <span><i class="bi bi-geo-alt text-danger me-1"></i> {{ complaint.location }}</span>
+                                <span><i class="bi bi-calendar-event text-info me-1"></i> {{ complaint.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </p>
+                            
+                            <hr class="border-white-5 my-4">
+                            
+                            <h6 class="text-light fw-bold mb-2">Detailed Description:</h6>
+                            <p class="lead fs-6 text-muted" style="line-height: 1.6;">{{ complaint.description }}</p>
+                        </div>
+                        
+                        <!-- Assignment Card -->
+                        <div class="col-md-4">
+                            <div class="card bg-white-5 border-white-10 p-3 h-100">
+                                <div class="card-body p-1">
+                                    <h6 class="text-light fw-bold mb-3 small text-uppercase tracking-wider"><i class="bi bi-person-check text-primary me-1"></i> Assignment Info</h6>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block">Submitted By:</small>
+                                        <strong class="text-light small">{{ submitted_by.username if submitted_by else 'Unknown User' }}</strong>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">{{ complaint.submitted_by_email }}</small>
+                                    </div>
+                                    
+                                    {% if assigned_to %}
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block">Assigned Representative:</small>
+                                            <strong class="text-light small">{{ assigned_to.username }}</strong>
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">{{ assigned_to.department }}</small>
+                                        </div>
+                                    {% else %}
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block">Assigned Representative:</small>
+                                            <strong class="text-warning small italic">Awaiting Routing</strong>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="mt-3 pt-3 border-top border-white-5">
+                                        <span class="badge bg-primary px-2.5 py-1.5 small">
+                                            <i class="bi bi-hand-thumbs-up-fill me-1"></i> {{ complaint.vote_count }} Support votes
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Images Section -->
+                    {% if complaint.images and complaint.images|length > 0 %}
+                        <hr class="border-white-5 my-4">
+                        <h6 class="text-light fw-bold mb-3">
+                            <i class="bi bi-images text-primary me-1"></i> 
+                            Supporting Images ({{ complaint.images|length }})
+                        </h6>
+                        <div class="row g-3">
+                            {% for image in complaint.images %}
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="card bg-white-2 border-white-10 overflow-hidden">
+                                        <img src="{{ url_for('static', filename='uploads/' + image) }}" 
+                                             class="img-fluid" 
+                                             alt="Attachment"
+                                             style="height: 180px; object-fit: cover; cursor: pointer; transition: all 0.3s;"
+                                             onclick="window.open(this.src, '_blank')">
+                                        <div class="card-footer bg-transparent border-0 text-center py-2">
+                                            <small class="text-muted text-truncate d-block" style="font-size: 0.75rem;">{{ image }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Status Timeline -->
+                    <hr class="border-white-5 my-4">
+                    <h6 class="text-light fw-bold mb-4"><i class="bi bi-clock-history text-primary me-1"></i> Resolution Progress Tracker</h6>
+                    <div class="timeline mt-3">
+                        {% for entry in complaint.timeline %}
+                            <div class="timeline-item status-{{ entry.status }}">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center g-2 mb-1">
+                                    <span class="badge bg-{{ 'success' if entry.status == 'resolved' 
+                                                           else 'warning' if entry.status == 'work_in_progress'
+                                                           else 'info' if entry.status == 'under_review'
+                                                           else 'primary' }}">
+                                        {{ entry.status.replace('_', ' ').title() }}
+                                    </span>
+                                    <small class="text-muted" style="font-size: 0.75rem;">
+                                        <i class="bi bi-calendar3"></i> {{ entry.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                        {% if entry.updated_by %}
+                                            by {{ entry.updated_by }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <p class="text-muted small mb-0">{{ entry.note }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Resolution Notes -->
+                    {% if complaint.resolution_notes %}
+                        <hr class="border-white-5 my-4">
+                        <h6 class="text-light fw-bold mb-2"><i class="bi bi-check-circle-fill text-success me-1"></i> Resolution Statement:</h6>
+                        <div class="alert alert-success bg-success-20 border-success-40 text-light py-3">
+                            {{ complaint.resolution_notes }}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Staff Update Form -->
+                    {% if current_user.role == 'staff' and complaint.assigned_to == current_user.id %}
+                        <hr class="border-white-5 my-4">
+                        <h6 class="text-light fw-bold mb-3"><i class="bi bi-pencil-square text-warning me-1"></i> Update Resolution Progress</h6>
+                        <form action="{{ url_for('update_complaint_status', complaint_id=complaint._id) }}" method="POST">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <select class="form-select text-light" name="status" required>
+                                        <option value="">Select Status</option>
+                                        <option value="under_review">Under Review</option>
+                                        <option value="work_in_progress">Work in Progress</option>
+                                        <option value="resolved">Resolved</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-7">
+                                    <input type="text" class="form-control" name="note" 
+                                           placeholder="Describe status updates (e.g. Parts ordered, task completed)" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-check-lg"></i> Update
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+                
+                <!-- Footer buttons -->
+                <div class="card-footer bg-transparent border-white-10 p-4">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center g-3">
+                        <small class="text-muted small">
+                            <i class="bi bi-clock me-1"></i> Created: {{ complaint.created_at.strftime('%Y-%m-%d %H:%M') }}<br>
+                            <i class="bi bi-arrow-clockwise me-1"></i> Updated: {{ complaint.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                        <a href="{{ url_for('student_dashboard') if current_user.role == 'student' 
+                                 else url_for('staff_dashboard') if current_user.role == 'staff'
+                                 else url_for('admin_dashboard') }}" 
+                           class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-arrow-left me-1"></i> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4 fade-in">
+    <div class="row align-items-center g-3 mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-light mb-0">Welcome back, {{ current_user.username }}!</h2>
+            <p class="text-muted small">Student Dashboard & Activities</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('submit_complaint') }}" class="btn btn-primary shadow-sm px-4">
+                <i class="bi bi-plus-circle me-1"></i> New Complaint
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 stagger-in">
+        <div class="col-md-3">
+            <div class="card stat-card gradient-blue border-0 shadow-lg position-relative overflow-hidden">
+                <div class="card-body">
+                    <h6 class="text-uppercase small fw-bold text-white-50">Total Complaints</h6>
+                    <h2 class="display-6 fw-bold counter mb-0" data-target="{{ stats.total }}">0</h2>
+                    <i class="bi bi-chat-square-text stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card gradient-warning border-0 shadow-lg position-relative overflow-hidden">
+                <div class="card-body">
+                    <h6 class="text-uppercase small fw-bold text-white-50">Pending</h6>
+                    <h2 class="display-6 fw-bold counter mb-0" data-target="{{ stats.pending }}">0</h2>
+                    <i class="bi bi-hourglass-split stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card gradient-cyan border-0 shadow-lg position-relative overflow-hidden">
+                <div class="card-body">
+                    <h6 class="text-uppercase small fw-bold text-white-50">In Progress</h6>
+                    <h2 class="display-6 fw-bold counter mb-0" data-target="{{ stats.in_progress }}">0</h2>
+                    <i class="bi bi-arrow-repeat stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card gradient-success border-0 shadow-lg position-relative overflow-hidden">
+                <div class="card-body">
+                    <h6 class="text-uppercase small fw-bold text-white-50">Resolved</h6>
+                    <h2 class="display-6 fw-bold counter mb-0" data-target="{{ stats.resolved }}">0</h2>
+                    <i class="bi bi-check-circle stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trending Complaints -->
+    <div class="row mt-5 pt-2">
+        <div class="col-12 mb-3">
+            <h4 class="fw-bold text-light"><i class="bi bi-fire text-danger me-1"></i> Trending Campus Issues</h4>
+            <p class="text-muted small">Upvote issues reported by fellow students to increase resolution priority</p>
+        </div>
+        {% for complaint in trending %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 bg-white-5 border-white-10">
+                    <div class="card-body d-flex flex-column justify-content-between p-4">
+                        <div>
+                            <h6 class="card-title text-light fw-bold mb-1">{{ complaint.title }}</h6>
+                            <p class="card-text text-primary small mb-3">{{ complaint.category }}</p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-white-5">
+                            <span class="badge bg-primary px-2.5 py-1.5" id="vote-count-{{ complaint._id }}">{{ complaint.vote_count }} votes</span>
+                            
+                            {% set is_voted = current_user.id in complaint.get('votes', []) %}
+                            <button class="btn btn-sm {% if is_voted %}btn-primary{% else %}btn-outline-primary{% endif %} vote-btn d-flex align-items-center gap-1" 
+                                    data-complaint-id="{{ complaint._id }}">
+                                <i class="bi bi-hand-thumbs-up-fill"></i>
+                                <span class="vote-text">{% if is_voted %}Supported{% else %}Support{% endif %}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center py-4">
+                <p class="text-muted small">No trending issues reported yet.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- My Complaints Table -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 g-2">
+                <h4 class="fw-bold text-light mb-0"><i class="bi bi-journal-text text-primary me-1"></i> My Filed Reports</h4>
+                
+                <!-- Instant Search Box -->
+                <div class="w-100 col-md-4 mt-2 mt-md-0" style="max-width: 320px;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white-5 border-white-10 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" id="tableSearch" class="form-control bg-white-5 border-white-10 py-2" placeholder="Search my reports...">
+                    </div>
+                </div>
+            </div>
+            
+            {% if complaints %}
+                <div class="table-responsive shadow-lg">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Votes</th>
+                                <th>Submitted</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for complaint in complaints %}
+                                <tr>
+                                    <td class="text-muted small">#{{ complaint._id|string|truncate(6, True, '') }}</td>
+                                    <td class="fw-bold text-light">{{ complaint.title }}</td>
+                                    <td><span class="text-muted small">{{ complaint.category }}</span></td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if complaint.status == 'resolved' else 'warning' if complaint.status == 'work_in_progress' else 'info' if complaint.status == 'under_review' else 'primary' }}">
+                                            {{ complaint.status.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ complaint.vote_count }}</td>
+                                    <td class="text-muted small">{{ complaint.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('view_complaint', complaint_id=complaint._id) }}" class="btn btn-sm btn-outline-secondary px-3">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="card bg-white-2 border-white-10 border-dashed text-center py-5">
+                    <div class="card-body">
+                        <i class="bi bi-journal-x display-6 text-muted mb-2"></i>
+                        <p class="text-muted small">You haven't submitted any complaints yet.</p>
+                        <a href="{{ url_for('submit_complaint') }}" class="btn btn-primary btn-sm px-4">Submit first report</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('.vote-btn').click(function() {
+        const complaintId = $(this).data('complaint-id');
+        const btn = $(this);
+        
+        $.ajax({
+            url: `/complaint/${complaintId}/vote`,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    const countBadge = $(`#vote-count-${complaintId}`);
+                    countBadge.text(response.vote_count + ' votes');
+                    
+                    const voteText = btn.find('.vote-text');
+                    if (response.voted) {
+                        btn.removeClass('btn-outline-primary').addClass('btn-primary');
+                        voteText.text('Supported');
+                    } else {
+                        btn.removeClass('btn-primary').addClass('btn-outline-primary');
+                        voteText.text('Support');
+                    }
+                }
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseJSON.error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

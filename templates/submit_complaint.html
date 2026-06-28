@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Complaint{% endblock %}
+
+{% block content %}
+<div class="container py-4 fade-in">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 p-4">
+                <div class="card-header bg-transparent border-0 ps-0 pb-3">
+                    <h3 class="fw-bold mb-1 text-light"><i class="bi bi-file-earmark-plus text-primary me-2"></i> Submit New Complaint</h3>
+                    <p class="text-muted small mb-0">File a detailed report to alert institutional maintenance</p>
+                </div>
+                <div class="card-body ps-0 pe-0">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="title" class="form-label text-light">Complaint Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="Brief title describing the issue (e.g. WiFi not working in library)">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label text-light">Category *</label>
+                                <select class="form-select text-light" id="category" name="category" required>
+                                    <option value="" selected>Select Category</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category }}">{{ category }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label text-light">Location *</label>
+                                <input type="text" class="form-control" id="location" name="location" required
+                                       placeholder="e.g., Room 201, Block A, Hostel 3">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label text-light">Detailed Description *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required
+                                      placeholder="Please provide detailed information about the issue to help staff fix it..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="images" class="form-label text-light">Supporting Images (Optional)</label>
+                            <input type="file" class="form-control" id="images" name="images" multiple accept="image/*">
+                            <div id="image-preview" class="d-flex flex-wrap mt-2"></div>
+                            <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i> You can upload multiple images (JPG, PNG, GIF)</small>
+                        </div>
+                        
+                        <div class="mb-3 form-check d-flex align-items-center">
+                            <input type="checkbox" class="form-check-input mt-0 me-2" id="terms" required>
+                            <label class="form-check-label text-muted small" for="terms">
+                                I confirm that the information provided is accurate and true *
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary px-4">Submit Report</button>
+                            <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Guidelines -->
+            <div class="card mt-4 bg-white-2 border-white-10 border-dashed p-3">
+                <div class="card-header bg-transparent border-0 ps-0 pt-0 pb-2">
+                    <h6 class="fw-bold text-info mb-0"><i class="bi bi-info-square me-2"></i> Submission Guidelines</h6>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="mb-0 text-muted small ps-3">
+                        <li>Provide a clear and concise title matching the specific concern.</li>
+                        <li>Include exact location details for faster maintenance routing.</li>
+                        <li>Describe the issue in detail, noting any potential safety hazards.</li>
+                        <li>Upload clear images of the fault if applicable.</li>
+                        <li>Duplicate complaints of identical items will be merged by admins.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="container py-4 fade-in">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-light mb-0">User Management</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Manage Users</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Filters & Search Bar Row -->
+    <div class="row g-3 justify-content-between align-items-center mt-2">
+        <div class="col-lg-8 col-md-7">
+            <div class="btn-group p-1 bg-white-5 rounded-3 border border-white-10" role="group">
+                <a href="?role=all" class="btn btn-sm px-3 py-2 btn {% if current_filter == 'all' %}btn-primary active{% else %}text-muted{% endif %}">All Users</a>
+                <a href="?role=student" class="btn btn-sm px-3 py-2 btn {% if current_filter == 'student' %}btn-primary active{% else %}text-muted{% endif %}">Students</a>
+                <a href="?role=staff" class="btn btn-sm px-3 py-2 btn {% if current_filter == 'staff' %}btn-primary active{% else %}text-muted{% endif %}">Staff</a>
+                <a href="?role=admin" class="btn btn-sm px-3 py-2 btn {% if current_filter == 'admin' %}btn-primary active{% else %}text-muted{% endif %}">Admins</a>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-5">
+            <div class="input-group shadow-sm">
+                <span class="input-group-text bg-white-5 border-white-10 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" id="tableSearch" class="form-control bg-white-5 border-white-10 py-2" placeholder="Search users...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Users List Card -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-transparent border-0 ps-4 pt-4 pb-0">
+                    <h5 class="fw-bold text-light mb-0">Registered User Accounts</h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if users %}
+                        <div class="table-responsive shadow-sm">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Email Address</th>
+                                        <th>Role</th>
+                                        <th>Department</th>
+                                        <th>Roll Number</th>
+                                        <th>Joined</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                        <tr>
+                                            <td class="fw-bold text-light d-flex align-items-center gap-2">
+                                                <i class="bi {{ user.avatar or 'bi-person-circle' }} text-primary fs-5"></i>
+                                                {{ user.username }}
+                                            </td>
+                                            <td>{{ user.email }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'success' if user.role == 'staff' else 'primary' }} text-uppercase">
+                                                    {{ user.role }}
+                                                </span>
+                                            </td>
+                                            <td><span class="small">{{ user.department or '-' }}</span></td>
+                                            <td><span class="small text-muted">{{ user.roll_number or '-' }}</span></td>
+                                            <td class="small text-muted">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" 
+                                                        data-bs-target="#editUserModal{{ user._id }}">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                {% if user._id|string != current_user.id %}
+                                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" 
+                                                            data-bs-target="#deleteUserModal{{ user._id }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Edit Modal -->
+                                        <div class="modal fade" id="editUserModal{{ user._id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <form action="{{ url_for('update_user', user_id=user._id) }}" method="POST">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title fw-bold text-light"><i class="bi bi-pencil-square text-primary me-2"></i> Edit Account</h5>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body text-start">
+                                                            <div class="mb-3">
+                                                                <label class="form-label text-light">Role Privilege</label>
+                                                                <select class="form-select text-light" name="role" required>
+                                                                    <option value="student" {{ 'selected' if user.role == 'student' }}>Student</option>
+                                                                    <option value="staff" {{ 'selected' if user.role == 'staff' }}>Staff</option>
+                                                                    <option value="admin" {{ 'selected' if user.role == 'admin' }}>Admin</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label text-light">Department Assigned</label>
+                                                                <input type="text" class="form-control" name="department" 
+                                                                       value="{{ user.department or '' }}">
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-primary">Save Updates</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Delete Modal -->
+                                        <div class="modal fade" id="deleteUserModal{{ user._id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <form action="{{ url_for('delete_user', user_id=user._id) }}" method="POST">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> Delete Account</h5>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body text-start">
+                                                            <p>Are you sure you want to delete user account <strong>{{ user.username }}</strong>?</p>
+                                                            <p class="text-danger small"><i class="bi bi-info-circle me-1"></i> Warning: This will permanently clean up this user and their details. This action cannot be undone.</p>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-people display-4 opacity-50"></i>
+                            <p class="mt-2 mb-0">No users found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="container py-4 fade-in">
+    <div class="row g-4">
+        <!-- Sidebar Card (Avatar & Stats) -->
+        <div class="col-lg-4">
+            <div class="card shadow-lg border-0 h-100 text-center p-4">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <!-- Profile Avatar Circle -->
+                    <div class="profile-avatar-outer mb-3">
+                        <div class="profile-avatar-inner d-flex align-items-center justify-content-center bg-gradient-blue text-white shadow-lg">
+                            <i class="bi {{ current_user.avatar or 'bi-person-circle' }}" id="avatar-preview-large" style="font-size: 4.5rem;"></i>
+                        </div>
+                    </div>
+                    
+                    <h4 class="fw-bold mb-1 text-light">{{ current_user.username }}</h4>
+                    <span class="badge bg-primary text-uppercase px-3 py-2 mb-3">{{ current_user.role }}</span>
+                    
+                    {% if current_user.bio %}
+                        <p class="text-muted small px-3 mb-4">"{{ current_user.bio }}"</p>
+                    {% else %}
+                        <p class="text-muted small px-3 mb-4 italic text-secondary">No bio written yet. Add one below!</p>
+                    {% endif %}
+
+                    <div class="w-100 mt-auto">
+                        <div class="row g-2 text-center">
+                            <div class="col-6">
+                                <div class="p-3 bg-white-5 rounded-3 border border-white-10">
+                                    <h3 class="fw-bold mb-0 text-primary">{{ activity_count }}</h3>
+                                    <small class="text-muted">
+                                        {% if current_user.role == 'student' %}Complaints{% else %}Assigned{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-white-5 rounded-3 border border-white-10">
+                                    <h3 class="fw-bold mb-0 text-success">Active</h3>
+                                    <small class="text-muted">Status</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Form Card -->
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0 p-4">
+                <div class="card-header bg-transparent border-0 ps-0 pb-3">
+                    <h4 class="fw-bold mb-0 text-light"><i class="bi bi-person-gear text-primary me-2"></i> Edit Account Settings</h4>
+                </div>
+                <div class="card-body ps-0 pe-0">
+                    <form method="POST" action="{{ url_for('profile') }}">
+                        <!-- Avatar Picker Grid -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-light">Select Profile Icon</label>
+                            <div class="d-flex flex-wrap gap-3 mt-2">
+                                {% set avatars = ['bi-person-circle', 'bi-person-badge', 'bi-person-workspace', 'bi-person-check', 'bi-person-heart', 'bi-emoji-smile', 'bi-lightbulb-fill', 'bi-award-fill'] %}
+                                {% for icon in avatars %}
+                                <div class="avatar-option-wrapper">
+                                    <input type="radio" name="avatar" id="avatar-{{ loop.index }}" value="{{ icon }}" 
+                                           class="btn-check" {% if current_user.avatar == icon or (not current_user.avatar and icon == 'bi-person-circle') %}checked{% endif %}>
+                                    <label class="btn btn-outline-secondary avatar-picker-btn p-3 rounded-circle d-flex align-items-center justify-content-center" 
+                                           for="avatar-{{ loop.index }}" style="width: 54px; height: 54px;">
+                                        <i class="bi {{ icon }} fs-4"></i>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label text-light">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" value="{{ current_user.username }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label text-light">Email Address</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label text-light">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone or '' }}" placeholder="Enter phone number">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="department" class="form-label text-light">Department</label>
+                                <input type="text" class="form-control" id="department" name="department" value="{{ current_user.department or '' }}" placeholder="e.g., Computer Science">
+                            </div>
+
+                            {% if current_user.role == 'student' %}
+                            <div class="col-md-12" id="roll_number_section">
+                                <label for="roll_number" class="form-label text-light">Roll Number</label>
+                                <input type="text" class="form-control" id="roll_number" name="roll_number" value="{{ current_user.roll_number or '' }}" placeholder="Enter roll number">
+                            </div>
+                            {% endif %}
+
+                            <div class="col-md-12">
+                                <label for="bio" class="form-label text-light">Short Bio</label>
+                                <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="Tell us about yourself...">{{ current_user.bio or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary px-4 py-2">
+                                <i class="bi bi-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent History Logs -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-lg border-0 p-4 animate-slide">
+                <div class="card-header bg-transparent border-0 ps-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-light"><i class="bi bi-activity text-primary me-2"></i> Recent Activity</h5>
+                    <span class="text-muted small">Showing last 5 items</span>
+                </div>
+                <div class="card-body p-0 mt-3">
+                    {% if recent_activity %}
+                        <div class="list-group list-group-flush rounded-3 overflow-hidden">
+                            {% for complaint in recent_activity %}
+                            <a href="{{ url_for('view_complaint', complaint_id=complaint._id) }}" class="list-group-item list-group-item-action p-3 complaint-item bg-transparent border-white-5">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <h6 class="mb-1 fw-bold text-light">{{ complaint.title }}</h6>
+                                    <small class="text-muted">{{ complaint.created_at.strftime('%Y-%m-%d') }}</small>
+                                </div>
+                                <p class="mb-1 small text-muted">{{ complaint.category }} | {{ complaint.location }}</p>
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-{{ 'success' if complaint.status == 'resolved' else 'warning' if complaint.status == 'work_in_progress' else 'info' if complaint.status == 'under_review' else 'primary' }}">
+                                        {{ complaint.status.replace('_', ' ').title() }}
+                                    </span>
+                                    <small class="text-muted"><i class="bi bi-hand-thumbs-up"></i> {{ complaint.vote_count }} votes</small>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted bg-white-2 rounded-3 border border-dashed border-white-10">
+                            <i class="bi bi-folder2-open display-6"></i>
+                            <p class="mt-2 mb-0">No recent activity found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInputs = document.querySelectorAll('input[name="avatar"]');
+    const avatarPreviewLarge = document.getElementById('avatar-preview-large');
+    
+    avatarInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.checked) {
+                const newIcon = this.value;
+                avatarPreviewLarge.className = 'bi ' + newIcon;
+                
+                const navbarAvatar = document.getElementById('navbar-user-avatar');
+                if (navbarAvatar) {
+                    navbarAvatar.className = 'bi ' + newIcon;
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
