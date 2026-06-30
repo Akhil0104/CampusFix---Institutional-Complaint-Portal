@@ -105,18 +105,27 @@
                         <div class="list-group-item p-3 complaint-item bg-transparent border-white-5">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <div>
-                                    <h6 class="mb-0 fw-bold text-light">{{ complaint.title }}</h6>
-                                    <p class="mb-0 small text-muted">{{ complaint.submitted_by_email }}</p>
+                                    <h6 class="mb-0 fw-bold text-light">{{ complaint.title or 'Untitled Complaint' }}</h6>
+                                    <p class="mb-0 small text-muted">{{ complaint.submitted_by_email or 'no-email@campusfix.com' }}</p>
                                 </div>
                                 <span class="badge 
                                     {% if complaint.status == 'resolved' %}bg-success
                                     {% elif complaint.status == 'work_in_progress' %}bg-warning
                                     {% else %}bg-primary{% endif %}">
-                                    {{ complaint.status|replace('_',' ')|title }}
+                                    {{ complaint.status|replace('_',' ')|title if complaint.status else 'Submitted' }}
                                 </span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <small class="text-muted small"><i class="bi bi-clock me-1"></i> {{ complaint.created_at.strftime('%b %d, %Y') }}</small>
+                                <small class="text-muted small">
+                                    <i class="bi bi-clock me-1"></i> 
+                                    {% if complaint.created_at %}
+                                        {% if complaint.created_at.strftime %}
+                                            {{ complaint.created_at.strftime('%b %d, %Y') }}
+                                        {% else %}
+                                            {{ complaint.created_at }}
+                                        {% endif %}
+                                    {% endif %}
+                                </small>
                                 <a href="{{ url_for('view_complaint', complaint_id=complaint._id) }}" class="btn btn-sm btn-link text-primary p-0">View details</a>
                             </div>
                         </div>

@@ -1,6 +1,7 @@
 from pymongo import MongoClient, ASCENDING
 from config import Config
 import bcrypt
+import os
 
 def init_db():
     client = MongoClient(Config.MONGO_URI)
@@ -21,15 +22,16 @@ def init_db():
     
     # Create default admin if not exists
     if db.users.count_documents({'role': 'admin'}) == 0:
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
         admin_data = {
             'username': 'admin',
             'email': 'admin@campusfix.com',
-            'password': bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()),
+            'password': bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()),
             'role': 'admin',
             'department': 'Administration'
         }
         db.users.insert_one(admin_data)
-        print("Default admin created - Email: admin@campusfix.com, Password: admin123")
+        print(f"Default admin created - Email: admin@campusfix.com, Password: {admin_password}")
     
     print("Database initialized successfully")
     return db

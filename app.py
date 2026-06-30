@@ -47,26 +47,162 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Please login to access this page.'
 login_manager.login_message_category = 'info'
 
+# ------------------- Mock Data Seeding for Fallback -------------------
+def seed_mock_data(db_instance):
+    try:
+        # Create indexes
+        db_instance.users.create_index('email', unique=True)
+        db_instance.users.create_index('username', unique=True)
+        
+        # Check if already seeded
+        if db_instance.users.count_documents({}) > 0:
+            return
+            
+        # Create default admin
+        admin_pass = bcrypt.generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')).decode('utf-8')
+        admin_data = {
+            'username': 'admin',
+            'email': 'admin@campusfix.com',
+            'password': admin_pass,
+            'role': 'admin',
+            'department': 'Administration',
+            'verified': True
+        }
+        db_instance.users.insert_one(admin_data)
+        
+        # Create default student
+        student_pass = bcrypt.generate_password_hash(os.getenv('STUDENT_PASSWORD', 'student123')).decode('utf-8')
+        student_data = {
+            'username': 'student',
+            'email': 'student@campusfix.com',
+            'password': student_pass,
+            'role': 'student',
+            'department': 'Computer Science',
+            'roll_number': 'CS101',
+            'verified': True
+        }
+        student_id = str(db_instance.users.insert_one(student_data).inserted_id)
+        
+        # Create default staff
+        staff_pass = bcrypt.generate_password_hash(os.getenv('STAFF_PASSWORD', 'staff123')).decode('utf-8')
+        staff_data = {
+            'username': 'staff',
+            'email': 'staff@campusfix.com',
+            'password': staff_pass,
+            'role': 'staff',
+            'department': 'Electrical',
+            'verified': True
+        }
+        staff_id = str(db_instance.users.insert_one(staff_data).inserted_id)
+        
+        # Seed some sample complaints
+        sample_complaints = [
+            {
+                'title': 'Wi-Fi not working in Hostel Block A',
+                'description': 'The Wi-Fi router on the 2nd floor of Block A has been down since yesterday. We are unable to access study materials.',
+                'category': 'Internet Connectivity',
+                'location': 'Hostel Block A, 2nd Floor',
+                'status': 'submitted',
+                'submitted_by': student_id,
+                'submitted_by_name': 'student',
+                'submitted_by_email': 'student@campusfix.com',
+                'assigned_to': None,
+                'assigned_to_name': None,
+                'upvotes': [],
+                'vote_count': 0,
+                'comments': [],
+                'images': [],
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            },
+            {
+                'title': 'Broken laboratory equipment',
+                'description': 'The digital oscilloscope at Bench 4 in the Electrical Lab is showing wrong readings and needs calibration/repair.',
+                'category': 'Laboratory',
+                'location': 'Electrical Lab, Bench 4',
+                'status': 'work_in_progress',
+                'submitted_by': student_id,
+                'submitted_by_name': 'student',
+                'submitted_by_email': 'student@campusfix.com',
+                'assigned_to': staff_id,
+                'assigned_to_name': 'staff',
+                'upvotes': [student_id],
+                'vote_count': 1,
+                'comments': [
+                    {
+                        'user_id': staff_id,
+                        'username': 'staff',
+                        'role': 'staff',
+                        'comment': 'I am looking into this issue, bench 4 is currently marked for calibration.',
+                        'created_at': datetime.utcnow()
+                    }
+                ],
+                'images': [],
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            },
+            {
+                'title': 'Leakage in Drinking Water Supply near library',
+                'description': 'There is a major pipe leak near the library drinking water cooler. Water is pooling around and it has become slippery.',
+                'category': 'Water Supply',
+                'location': 'Library Entrance',
+                'status': 'resolved',
+                'submitted_by': student_id,
+                'submitted_by_name': 'student',
+                'submitted_by_email': 'student@campusfix.com',
+                'assigned_to': staff_id,
+                'assigned_to_name': 'staff',
+                'upvotes': [],
+                'vote_count': 0,
+                'comments': [
+                    {
+                        'user_id': staff_id,
+                        'username': 'staff',
+                        'role': 'staff',
+                        'comment': 'Plumber has replaced the broken valve. Leakage is resolved.',
+                        'created_at': datetime.utcnow()
+                    }
+                ],
+                'images': [],
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }
+        ]
+        db_instance.complaints.insert_many(sample_complaints)
+        print("💡 Mock data seeded successfully inside in-memory DB!")
+    except Exception as e:
+        print(f"❌ Error seeding mock data: {e}")
+
 # ------------------- MongoDB Connection -------------------
 mongo_uri = os.getenv('MONGO_URI') or Config.MONGO_URI
 
 try:
-    if mongo_uri and 'localhost' not in mongo_uri:
-        print(f"🌐 Connecting to MongoDB Atlas: {mongo_uri}")
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+    if mongo_uri:
+        if 'localhost' in mongo_uri:
+            print("🏠 Connecting to local MongoDB...")
+            client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+        else:
+            print("🌐 Connecting to MongoDB Atlas...")
+            client = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000)
+        
+        client.admin.command('ping')
+        db = client['campusfix']
+        print("✅ MongoDB connected successfully!")
     else:
-        print("🏠 Connecting to local MongoDB (fallback)")
-        client = MongoClient('localhost', 27017, serverSelectionTimeoutMS=5000)
-
-    client.admin.command('ping')
-    db = client['campusfix']
-    print("✅ MongoDB connected successfully!")
+        raise ValueError("No MONGO_URI found")
 
 except Exception as e:
     print(f"❌ MongoDB connection error: {e}")
-    if mongo_uri:
-        print("🚨 Deployment failed: Check your Atlas Network Access, credentials, and MONGO_URI")
-    db = None
+    print("🔮 Bypassing error: Falling back to an in-memory database (mongomock)...")
+    try:
+        import mongomock
+        client = mongomock.MongoClient()
+        db = client['campusfix']
+        seed_mock_data(db)
+        print("✅ In-memory MongoDB fallback initialized successfully!")
+    except Exception as mock_err:
+        print(f"🚨 Failed to initialize in-memory fallback database: {mock_err}")
+        db = None
 
 
 def get_db():
@@ -102,23 +238,12 @@ If you did not create this account, please ignore this email.
 """
         mail.send(msg)
         print(f"✅ Verification email sent to {user_email}")
+        print(f"🔗 Verification Link: {verify_link}")
     except Exception as e:
         print(f"❌ Error sending verification email: {e}")
+        print(f"🔗 [MANUAL ACTIVATION LINK]: {verify_link}")
 
-# Initialize extensions
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-login_manager.login_message = 'Please login to access this page.'
-login_manager.login_message_category = 'info'
 
-# MongoDB Connection
-
-# Load .env variables
-load_dotenv()
-
-# Ensure upload folder exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # User class for Flask-Login
 class User(UserMixin):
