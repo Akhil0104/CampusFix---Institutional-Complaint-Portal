@@ -174,35 +174,42 @@ def seed_mock_data(db_instance):
         print(f"❌ Error seeding mock data: {e}")
 
 # ------------------- MongoDB Connection -------------------
-mongo_uri = os.getenv('MONGO_URI') or Config.MONGO_URI
+client = None
+db = None
 
-try:
-    if mongo_uri:
-        if 'localhost' in mongo_uri:
-            print("🏠 Connecting to local MongoDB...")
-            client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-        else:
-            print("🌐 Connecting to MongoDB Atlas...")
-            client = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000)
+def init_db_connection():
+    global client, db
+    if db is not None:
+        return
         
-        client.admin.command('ping')
-        db = client['campusfix']
-        print("✅ MongoDB connected successfully!")
-    else:
-        raise ValueError("No MONGO_URI found")
-
-except Exception as e:
-    print(f"❌ MongoDB connection error: {e}")
-    print("🔮 Bypassing error: Falling back to an in-memory database (mongomock)...")
+    mongo_uri = os.getenv('MONGO_URI') or Config.MONGO_URI
     try:
-        import mongomock
-        client = mongomock.MongoClient()
-        db = client['campusfix']
-        seed_mock_data(db)
-        print("✅ In-memory MongoDB fallback initialized successfully!")
-    except Exception as mock_err:
-        print(f"🚨 Failed to initialize in-memory fallback database: {mock_err}")
-        db = None
+        if mongo_uri:
+            if 'localhost' in mongo_uri:
+                print("🏠 Connecting to local MongoDB...")
+                client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+            else:
+                print("🌐 Connecting to MongoDB Atlas...")
+                client = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000)
+            
+            client.admin.command('ping')
+            db = client['campusfix']
+            print("✅ MongoDB connected successfully!")
+        else:
+            raise ValueError("No MONGO_URI found")
+
+    except Exception as e:
+        print(f"❌ MongoDB connection error: {e}")
+        print("🔮 Bypassing error: Falling back to an in-memory database (mongomock)...")
+        try:
+            import mongomock
+            client = mongomock.MongoClient()
+            db = client['campusfix']
+            seed_mock_data(db)
+            print("✅ In-memory MongoDB fallback initialized successfully!")
+        except Exception as mock_err:
+            print(f"🚨 Failed to initialize in-memory fallback database: {mock_err}")
+            db = None
 
 
 def get_db():
@@ -276,6 +283,7 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
+    init_db_connection()
     if db is None:
         return None
     try:
@@ -297,11 +305,13 @@ def utility_processor():
 
 @app.before_request
 def check_db_connection():
+    init_db_connection()
     if db is None:
         return "MongoDB connection is not available. Please configure MONGO_URI and retry.", 500
 
 @app.route('/debug/health')
 def debug_health():
+    init_db_connection()
     return jsonify({
         'status': 'ok',
         'mongo_uri': os.getenv('MONGO_URI', 'not-set'),
@@ -310,6 +320,7 @@ def debug_health():
 
 @app.route('/')
 def index():
+    init_db_connection()
     if db is None:
         return "MongoDB not connected. Please start MongoDB service.", 500
     
